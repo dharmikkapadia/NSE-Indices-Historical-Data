@@ -85,7 +85,6 @@ if "end_date" not in st.session_state:
 #  Header
 # ============================================================
 st.title("NSE Nifty Indices — Historical Data Downloader")
-st.caption("Arthashastra Finsec Providers Pvt Ltd (AFP)")
 
 client = get_client()
 with st.spinner("Loading index catalog from niftyindices.com ..."):
@@ -101,30 +100,12 @@ if not catalog or not any(catalog.values()):
 
 
 # ============================================================
-#  Preset / selection callbacks
+#  Selection callbacks
 #  (defined after catalog load so they can close over it)
 # ============================================================
 def _clear_selection():
     for cat in catalog:
         st.session_state[f"cat_{cat}"] = []
-
-
-def _save_preset():
-    selected = set()
-    for cat in catalog:
-        selected.update(st.session_state.get(f"cat_{cat}", []))
-    st.session_state["preset_indices"] = sorted(selected)
-    st.session_state["_preset_msg"] = f"saved:{len(selected)}"
-
-
-def _load_preset():
-    preset = set(st.session_state.get("preset_indices", []))
-    if not preset:
-        st.session_state["_preset_msg"] = "empty"
-        return
-    for cat, indices in catalog.items():
-        st.session_state[f"cat_{cat}"] = [i for i in indices if i in preset]
-    st.session_state["_preset_msg"] = f"loaded:{len(preset)}"
 
 
 def _refresh_catalog():
@@ -151,19 +132,9 @@ with left:
     n_selected = len(selected_indices)
     st.caption("1 selected" if n_selected == 1 else f"{n_selected} selected")
 
-    msg = st.session_state.pop("_preset_msg", None)
-    if msg == "empty":
-        st.info("No saved preset found. Select indices, then click 'Save Preset'.")
-    elif msg and msg.startswith("saved:"):
-        st.success(f"Preset saved ({msg.split(':')[1]} indices).")
-    elif msg and msg.startswith("loaded:"):
-        st.success(f"Loaded preset ({msg.split(':')[1]} indices).")
-
-    b1, b2, b3, b4 = st.columns(4)
-    b1.button("Save Preset", on_click=_save_preset, use_container_width=True)
-    b2.button("Load Preset", on_click=_load_preset, use_container_width=True)
-    b3.button("Clear", on_click=_clear_selection, use_container_width=True)
-    b4.button("Refresh Catalog", on_click=_refresh_catalog, use_container_width=True)
+    b1, b2 = st.columns(2)
+    b1.button("Clear", on_click=_clear_selection, use_container_width=True)
+    b2.button("Refresh Catalog", on_click=_refresh_catalog, use_container_width=True)
 
 with right:
     st.subheader("Configure Download")

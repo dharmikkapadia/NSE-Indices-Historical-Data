@@ -21,8 +21,8 @@ Sepia (warm parchment) color theme.
 | `.streamlit/config.toml`    | Sepia theme configuration.                                   |
 | `README.md`                 | This file.                                                    |
 
-There is no server-side output folder and no local config file: presets and
-selections live in your browser session (`st.session_state`) and reset when
+There is no server-side output folder and no local config file: your index
+selection lives in the browser session (`st.session_state`) and resets when
 the session ends. The index catalog is cached server-side for 24 hours
 (`st.cache_data`) so it doesn't need to be re-fetched on every page load.
 
@@ -60,12 +60,10 @@ a re-fetch sooner.
 
 1. **Select indices** -- expand a category and use its search-as-you-type
    multiselect. Selections across categories combine into one list.
-2. **(Optional) Save Preset** -- stores your current selection for the rest
-   of this browser session. **Load Preset** restores it; **Clear** empties
-   the current selection. Presets do not persist across sessions/devices.
-3. **Pick a date range** with the date pickers, or a quick-set button:
+   **Clear** empties the current selection.
+2. **Pick a date range** with the date pickers, or a quick-set button:
    *Prev Month*, *This Month*, *YTD*, *Last 1Y*.
-4. **Click DOWNLOAD.** Progress and per-index status show live; when done, a
+3. **Click DOWNLOAD.** Progress and per-index status show live; when done, a
    **Download workbook** button appears with the finished `.xlsx` in memory.
 
 ### Output structure
@@ -106,7 +104,7 @@ from a previous download.
 | Some indices return 0 records      | The index either did not exist in that date range, or the site returned an empty payload. Its sheet is still created, with headers only. Try a wider range. |
 | Need data older than 1 year        | Long ranges are auto-chunked into 360-day segments under the hood -- just enter the dates.  |
 | Non-JSON / bot-check error         | niftyindices.com's API may have changed shape again, or requests from this app's IP are being blocked as a bot. The error message includes a snippet of what came back for diagnosis. |
-| Presets disappeared                | Presets live in browser session state only -- they reset when the browser tab/session ends. |
+| Selection disappeared              | Index selection lives in browser session state only -- it resets when the browser tab/session ends. |
 
 ---
 
