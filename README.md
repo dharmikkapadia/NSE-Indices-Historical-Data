@@ -1,90 +1,80 @@
 # NSE Nifty Indices  -  Historical Data Downloader
 
-A modern Windows desktop app for **Arthashastra Finsec Providers Pvt Ltd (AFP)**
-that downloads historical OHLC data for selected NSE Nifty indices from
+A Streamlit web app for **Arthashastra Finsec Providers Pvt Ltd (AFP)** that
+downloads historical OHLC data for selected NSE Nifty indices from
 [niftyindices.com](https://www.niftyindices.com/reports/historical-data) into
-a single Excel workbook -- one sheet per index.
+a single Excel workbook -- one sheet per index -- and serves it straight to
+your browser as a download. No install required; runs on
+[Streamlit Community Cloud](https://streamlit.io/cloud).
 
-Built with `customtkinter` for a clean, modern look with **System / Light / Dark**
-theme support. Compiles to a single `.exe` that runs on **any Windows PC with
-no Python installation required**.
+Sepia (warm parchment) color theme.
 
 ---
 
 ## Files in this folder
 
-| File                  | Purpose                                                   |
-|-----------------------|-----------------------------------------------------------|
-| `nse_downloader.py`   | The application source (Tkinter GUI + API client).        |
-| `build_exe.bat`       | Double-click to build `NSEDataDownloader.exe`.            |
-| `requirements.txt`    | Python dependencies (used by `build_exe.bat`).            |
-| `README.md`           | This file.                                                |
+| File                       | Purpose                                                     |
+|-----------------------------|--------------------------------------------------------------|
+| `streamlit_app.py`          | The app entrypoint -- UI, download workflow, workbook build. |
+| `nse_client.py`             | API client (`NSEClient`) + openpyxl workbook helpers.        |
+| `requirements.txt`          | Python dependencies for Streamlit Community Cloud.           |
+| `.streamlit/config.toml`    | Sepia theme configuration.                                   |
+| `README.md`                 | This file.                                                    |
 
-After building, two extra files are created at runtime next to the .exe:
-
-| File                            | Purpose                                                  |
-|---------------------------------|----------------------------------------------------------|
-| `indices_catalog.json`          | Cached list of all available indices.                    |
-| `nse_downloader_config.json`    | Saved preset of selected indices + last output folder.   |
+There is no server-side output folder and no local config file: presets and
+selections live in your browser session (`st.session_state`) and reset when
+the session ends. The index catalog is cached server-side for 24 hours
+(`st.cache_data`) so it doesn't need to be re-fetched on every page load.
 
 ---
 
-## Building the .exe (one-time setup)
+## Running locally
 
-You only need to do this on **one** PC that has Python installed.
-The resulting `.exe` is portable.
+```bash
+pip install -r requirements.txt
+streamlit run streamlit_app.py
+```
 
-1. Install Python 3.9 or newer from <https://www.python.org/downloads/>.
-   **Tick "Add python.exe to PATH"** during installation.
-2. Double-click `build_exe.bat` (or run it from a Command Prompt).
-3. Wait 1-3 minutes. When done, the executable will be at:
-   ```
-   dist\NSEDataDownloader.exe
-   ```
-4. Copy that single `.exe` to any Windows PC and double-click to run.
+Opens at `http://localhost:8501`.
 
-> The `.bat` automatically installs `pyinstaller`, `requests`, `certifi`,
-> `customtkinter`, `darkdetect`, and `openpyxl`.
+## Deploying to Streamlit Community Cloud
+
+1. Push this repo to GitHub.
+2. On [share.streamlit.io](https://share.streamlit.io), create a new app
+   pointing at this repo, branch, and `streamlit_app.py` as the entrypoint.
+   `requirements.txt` at the repo root is picked up automatically.
+3. Since this is AFP-internal tooling, restrict access via Community Cloud's
+   viewer email allow-list (App settings -> Sharing) rather than leaving the
+   app public.
 
 ---
 
 ## Using the app
 
-### First launch
-On first launch the app fetches the full index catalog from niftyindices.com
-(takes about 5-10 seconds) and caches it locally as `indices_catalog.json`.
-Subsequent launches are instant.
+### First load
+On first load the app fetches the full index catalog from niftyindices.com
+(a few seconds) and caches it for 24 hours. Use **Refresh Catalog** to force
+a re-fetch sooner.
 
 ### Workflow
 
-1. **Select indices** in the left panel. Click a category row to toggle
-   all indices under it; click a single index to toggle just that one.
-   Use the **Filter** box to find an index by name.
-2. **(Optional) Save selection as preset** -- the next time you open the
-   app, your selection is restored automatically.
-3. **Pick a date range** (YYYY-MM-DD format).
-   Quick-set buttons: *Prev Month*, *This Month*, *YTD*, *Last 1Y*.
-4. **Choose an output folder.**
-5. **Click DOWNLOAD.**
-
-### Theme
-
-The **Theme** dropdown in the top-right toolbar lets you switch between:
-
-- **System** *(default)* -- automatically matches the Windows light/dark setting.
-- **Light** -- always light.
-- **Dark** -- always dark.
-
-The choice is saved and restored on next launch.
+1. **Select indices** -- expand a category and use its search-as-you-type
+   multiselect. Selections across categories combine into one list.
+2. **(Optional) Save Preset** -- stores your current selection for the rest
+   of this browser session. **Load Preset** restores it; **Clear** empties
+   the current selection. Presets do not persist across sessions/devices.
+3. **Pick a date range** with the date pickers, or a quick-set button:
+   *Prev Month*, *This Month*, *YTD*, *Last 1Y*.
+4. **Click DOWNLOAD.** Progress and per-index status show live; when done, a
+   **Download workbook** button appears with the finished `.xlsx` in memory.
 
 ### Output structure
 
-Each download produces **one Excel workbook** in your output folder, covering
-the entire date range you picked (no more splitting by month):
+Each run produces **one Excel workbook**, covering the entire date range you
+picked, named after that range:
 
 ```
-<Output Folder>/
-  NSE_Indices_2026-02-01_to_2026-02-28.xlsx
+NSE_Indices_2026-02-01_to_2026-02-28.xlsx
 ```
 
 Inside the workbook:
@@ -97,9 +87,8 @@ Inside the workbook:
   selected index in one long table -- columns `Index, Date, Open, High,
   Low, Close`, sorted by date then index name. Handy for pivoting.
 
-Each run is a **fresh, standalone file** named after the date range you
-entered -- it does not merge with or read from any previous download. If
-you re-run the same date range, that file is overwritten.
+Each run is a **fresh, standalone file** -- nothing is merged with or read
+from a previous download.
 
 ### Behavior options
 
@@ -109,52 +98,32 @@ you re-run the same date range, that file is overwritten.
 
 ---
 
-## Recurring downloads (e.g. a monthly pull)
-
-Each run makes its own dated file, so nothing gets merged automatically:
-
-1. Open `NSEDataDownloader.exe`.
-2. Click **Load Preset** (your saved indices auto-tick).
-3. Pick the date range you want (e.g. **Prev Month**, or a custom range).
-4. Click **DOWNLOAD**.
-
-That writes a workbook named for that date range, e.g.
-`NSE_Indices_2026-06-01_to_2026-06-30.xlsx`, alongside any earlier
-downloads in the same output folder -- each file is independent.
-
----
-
 ## Troubleshooting
 
 | Issue                              | Fix                                                                                         |
-|------------------------------------|---------------------------------------------------------------------------------------------|
-| `python` not recognized            | Re-install Python with **Add to PATH** ticked, or reboot.                                  |
-| Build fails on `pyinstaller`       | Run as Administrator, or `python -m pip install --upgrade pyinstaller` manually.            |
-| Build fails on `customtkinter` install | If you're on a brand-new Python release (e.g. 3.14) and pip can't find a compatible `customtkinter`, install Python 3.12 alongside and run `build_exe.bat` from that. |
-| Catalog fetch fails                | Check internet / proxy / firewall. Click **Refresh Catalog** to retry.                      |
-| Antivirus flags the .exe           | Common false positive for PyInstaller bundles. Add an exception or rebuild on that PC.      |
+|------------------------------------|-----------------------------------------------------------------------------------------------|
+| Catalog fails to load              | The site may be temporarily unavailable. Click **Refresh Catalog** to retry.                |
 | Some indices return 0 records      | The index either did not exist in that date range, or the site returned an empty payload. Its sheet is still created, with headers only. Try a wider range. |
-| "Could not save ... close it in Excel first" | The output workbook is already open in Excel (or another program). Close it and click **DOWNLOAD** again. |
-| Need data older than 1 year        | The app auto-chunks long ranges into yearly segments under the hood -- just enter the dates. |
-| Theme stays Light when set to System | This means `darkdetect` couldn't read the Windows setting. Use the dropdown to force Light or Dark. |
+| Need data older than 1 year        | Long ranges are auto-chunked into 360-day segments under the hood -- just enter the dates.  |
+| Non-JSON / bot-check error         | niftyindices.com's API may have changed shape again, or requests from this app's IP are being blocked as a bot. The error message includes a snippet of what came back for diagnosis. |
+| Presets disappeared                | Presets live in browser session state only -- they reset when the browser tab/session ends. |
 
 ---
 
 ## Technical notes
 
-- **Tech stack**: Python 3, [`customtkinter`](https://github.com/TomSchimansky/CustomTkinter)
-  (modern Tk widgets), `darkdetect` (system-theme detection), `requests`,
-  `openpyxl` (xlsx workbook output), PyInstaller.
-- **No browser automation, no Selenium, no Chrome dependency.** Pure HTTP
-  against the public JSON endpoints used by the niftyindices.com page itself.
-- **Threaded downloads** keep the UI responsive; a queue marshals log
-  messages back to the main thread.
+- **Tech stack**: Python 3, `streamlit`, `requests`, `openpyxl` (xlsx
+  workbook output). No browser automation, no Selenium, no Chrome
+  dependency -- pure HTTP against the public JSON endpoints used by the
+  niftyindices.com page itself.
+- **In-memory workbook**: built with `openpyxl` into a `BytesIO` buffer and
+  served via `st.download_button` -- nothing is written to the server's
+  filesystem, which is ephemeral and shared across every visitor on
+  Community Cloud.
 - **Date-range chunking**: the site's API caps each request at ~1 year, so
   longer ranges are split into 360-day chunks and re-merged.
-- **Theming**: the **Theme** dropdown in the toolbar toggles between
-  *System* (auto-follows the Windows colour-mode setting), *Light*, and
-  *Dark*. Your choice is saved in `nse_downloader_config.json` and
-  restored on next launch.
+- **Caching**: `NSEClient` (one shared `requests.Session`) is a
+  `st.cache_resource`; the index catalog is `st.cache_data` with a 24h TTL.
 
 ---
 
